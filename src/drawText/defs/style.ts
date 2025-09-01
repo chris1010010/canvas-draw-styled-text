@@ -16,6 +16,8 @@ export type BaseOptions = {
   align?: 'left' | 'center' | 'right'
   /** text direction */
   direction?: 'vertical' | 'horizontal'
+  /** e.g. for Arabic */
+  rightToLeft?: boolean
   /** text lang. default: html lang prop */
   lang?: string
   /** line breake method for overflown line. default is normal */

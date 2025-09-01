@@ -87,6 +87,18 @@ const getLineX = (align: BaseOptions['align'], lineWidth: number, maxWidth: numb
   }
 }
 
+const getLineX_RTL = (align: BaseOptions['align'], lineWidth: number, maxWidth: number) => {
+  switch (align) {
+    case 'center':
+      return (maxWidth - lineWidth) / 2
+    case 'right':
+      return maxWidth - lineWidth
+    default:
+      return 0
+  }
+}
+
+
 const mergeStyle = <M extends ExtensionsMap>(
   style: StyleWithExtension<M>,
   newStyle: StyleWithExtension<M>
@@ -189,6 +201,102 @@ const drawTextLinesWithWidthAndBreaks = <M extends ExtensionsMap>(
   }
 }
 
+const drawTextLinesWithWidthAndBreaksRTL = <M extends ExtensionsMap>(
+  ctx: CanvasRenderingContext2D,
+  lines: LineText<M>[],
+  text: StyledText<M>,
+  maxWidth: number
+) => {
+  const { align, lineHeight = 1 } = text.setting
+  const isVertical = text.setting.direction === 'vertical'
+
+  const pos = {
+    x: 0,
+    y: 0,
+  }
+
+  // set initial style
+  let style: StyleWithExtension<M> = { ...text.initialStyle }
+  setStyle(ctx, style as Style)
+
+  ctx.direction = "rtl";
+  //console.log(ctx.direction);
+
+  // each line
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+    const line = lines[lineIndex]
+    //const lw = line.lineMetrix.width
+    const lx = getLineX_RTL(align, line.lineMetrix.width, maxWidth)
+    const lh = line.lineMetrix.lineAscent + line.lineMetrix.lineDescent
+    const lp = (lh * (lineHeight - 1)) / 2
+
+    // start pos
+    pos.x = lx
+    pos.y += lp
+
+    // draw line box
+    //DEBUG && drawLineBox(ctx, lx, pos.y, line.lineMetrix)
+
+    // draw each char
+    for (let charIndex = 0; charIndex < line.charsWithStyle.length; charIndex++) {
+      const charWithStyle = line.charsWithStyle.at(charIndex)
+      if (!charWithStyle) break
+      // update style
+      if (charWithStyle.style) {
+        style = mergeStyle(style, charWithStyle.style)
+        setStyle(ctx, style as Style)
+      }
+
+      // get same style segment
+      if (charIndex === 0 || charWithStyle.style) {
+        const segChars: CharMetrix[] = [charWithStyle.char]
+        const segStart = charIndex
+        const maxLen = line.charsWithStyle.length - segStart
+        for (let segCharIndex = 1; segCharIndex < maxLen; segCharIndex++) {
+          const cs = line.charsWithStyle.at(segStart + segCharIndex)
+          if (!cs || cs.style) {
+            break
+          }
+          segChars.push(cs.char)
+        }
+        const segWidth = segChars.reduce((sum, c) => sum + c.metrix.width, 0)
+        const segText = segChars.map((c) => c.textChar).join('')
+
+        // call extension if exists
+        for (let name in style) {
+          const extension = (text.extensions ?? {})[name]
+          const option = style[name]
+          const currentStyle = { ...style } as Style
+          if (extension && option)
+            extension.beforeSegment(ctx, { line, text: segChars, pos, style: currentStyle }, option)
+        }
+
+        // get drawing offset for safari bug
+        const fitstChar = segChars.at(0)
+        const adjustment = isVertical && fitstChar ? getSafariVerticalOffset(fitstChar.metrix) : { x: 0, y: 0 }
+
+        ctx.fillText(segText, pos.x - adjustment.x, pos.y + line.lineMetrix.lineAscent)
+        // draw debug char box
+        /*if (DEBUG) {
+          let cx = pos.x
+          segChars.forEach((c) => {
+            drawMetrixBox(ctx, cx, pos.y, line.lineMetrix.lineAscent, c.metrix)
+            cx += c.metrix.width
+          })
+        }*/
+        // update pos
+        pos.x -= segWidth
+      }
+    }
+
+    // update pos
+    pos.y += lh + lp
+    // draw line separator
+    //DEBUG && drawLineSeparator(ctx, lx, pos.y, lw)
+  }
+}
+
+
 const getOuterBoxForLines = (
   lineBreaks: LineMetrix[],
   maxWidth: number,
@@ -280,7 +388,11 @@ export const drawStyledText = <E extends ExtensionsMap = any>(
 
   const savedKerning = ctx.canvas.style.fontKerning
   ctx.canvas.style.fontKerning = 'none'
-  drawTextLinesWithWidthAndBreaks(ctx, lines, text, maxWidth)
+  //console.log("RTL: " + text.setting.rightToLeft);
+  if (text.setting.rightToLeft)
+    drawTextLinesWithWidthAndBreaksRTL(ctx, lines, text, maxWidth)
+  else
+    drawTextLinesWithWidthAndBreaks(ctx, lines, text, maxWidth)
   ctx.canvas.style.fontKerning = savedKerning
   ctx.restore()
 
