@@ -30,7 +30,10 @@ export const underLineExtension: Extension<UnderLineOption> = {
     ctx.strokeStyle = segment.style.fontColor
     ctx.lineWidth = opt.width
     ctx.moveTo(segment.pos.x, y)
-    ctx.lineTo(segment.pos.x + segment.text.reduce((sum, c) => sum + c.metrix.width, 0), y)
+    if (ctx.textAlign === "right")
+      ctx.lineTo(segment.pos.x - segment.text.reduce((sum, c) => sum + c.metrix.width, 0), y)
+    else
+      ctx.lineTo(segment.pos.x + segment.text.reduce((sum, c) => sum + c.metrix.width, 0), y)
     ctx.stroke()
     ctx.restore()
   },

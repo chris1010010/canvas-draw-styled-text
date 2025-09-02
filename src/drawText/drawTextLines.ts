@@ -90,11 +90,11 @@ const getLineX = (align: BaseOptions['align'], lineWidth: number, maxWidth: numb
 const getLineX_RTL = (align: BaseOptions['align'], lineWidth: number, maxWidth: number) => {
   switch (align) {
     case 'center':
-      return (maxWidth - lineWidth) / 2
-    case 'right':
-      return maxWidth - lineWidth
+      return maxWidth - (maxWidth - lineWidth) / 2
+    case 'left':
+      return lineWidth
     default:
-      return 0
+      return maxWidth
   }
 }
 
@@ -220,6 +220,7 @@ const drawTextLinesWithWidthAndBreaksRTL = <M extends ExtensionsMap>(
   setStyle(ctx, style as Style)
 
   ctx.direction = "rtl";
+  ctx.textAlign = "right";
   //console.log(ctx.direction);
 
   // each line
@@ -233,6 +234,7 @@ const drawTextLinesWithWidthAndBreaksRTL = <M extends ExtensionsMap>(
     // start pos
     pos.x = lx
     pos.y += lp
+    //console.log("x: " + pos.x)
 
     // draw line box
     //DEBUG && drawLineBox(ctx, lx, pos.y, line.lineMetrix)
@@ -251,6 +253,8 @@ const drawTextLinesWithWidthAndBreaksRTL = <M extends ExtensionsMap>(
       if (charIndex === 0 || charWithStyle.style) {
         const segChars: CharMetrix[] = [charWithStyle.char]
         const segStart = charIndex
+        //console.log("Segment starting at " + segStart)
+        //console.log("'"+charWithStyle.char.textChar+"'")
         const maxLen = line.charsWithStyle.length - segStart
         for (let segCharIndex = 1; segCharIndex < maxLen; segCharIndex++) {
           const cs = line.charsWithStyle.at(segStart + segCharIndex)
@@ -258,9 +262,11 @@ const drawTextLinesWithWidthAndBreaksRTL = <M extends ExtensionsMap>(
             break
           }
           segChars.push(cs.char)
+          //console.log("'"+cs.char.textChar+"'")
         }
         const segWidth = segChars.reduce((sum, c) => sum + c.metrix.width, 0)
         const segText = segChars.map((c) => c.textChar).join('')
+        //console.log(segText)
 
         // call extension if exists
         for (let name in style) {
@@ -272,8 +278,8 @@ const drawTextLinesWithWidthAndBreaksRTL = <M extends ExtensionsMap>(
         }
 
         // get drawing offset for safari bug
-        const fitstChar = segChars.at(0)
-        const adjustment = isVertical && fitstChar ? getSafariVerticalOffset(fitstChar.metrix) : { x: 0, y: 0 }
+        const firstChar = segChars.at(0)
+        const adjustment = isVertical && firstChar ? getSafariVerticalOffset(firstChar.metrix) : { x: 0, y: 0 }
 
         ctx.fillText(segText, pos.x - adjustment.x, pos.y + line.lineMetrix.lineAscent)
         // draw debug char box
