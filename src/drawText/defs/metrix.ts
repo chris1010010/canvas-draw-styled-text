@@ -1,8 +1,10 @@
 import { ExtensionsMap, StyleWithExtension } from './extension'
+import { Word } from '../breakLine.ts'
 
 /** char metrix */
 export type CharMetrix = {
   metrix: TextMetrics
+  width: number
   textChar: string
 }
 
@@ -12,6 +14,7 @@ export type LineMetrix = {
   width: number
   lineAscent: number
   lineDescent: number
+  words: Word[]
 }
 
 /** pre-measured matrix */

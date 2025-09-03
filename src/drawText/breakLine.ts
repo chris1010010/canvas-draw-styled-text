@@ -1,7 +1,7 @@
 import { CharMetrix, LineMetrix } from "./defs/metrix"
 import { LineBreaker } from 'css-line-break';
 
-type Word = {
+export type Word = {
   /** char count */
   length: number;
   /** width(px) of word */
@@ -35,7 +35,7 @@ const nextWord = (breaker: Breaker, CharMetrixes: CharMetrix[]): Word | undefine
   const end = lb.value.end
   const length = end - start
   const chars = CharMetrixes.slice(start, end)
-  const width = chars.reduce((sum, c) => sum + c.metrix.width, 0)
+  const width = chars.reduce((sum, c) => sum + c.width, 0)
   return { length, width, chars }
 }
 
@@ -57,11 +57,11 @@ const splitWordByMaxWidth = (word: Word, maxWidth: number): [Word] | [Word, Word
   for (let i = 0; i < word.chars.length; i++) {
     const char = word.chars[i]
     const isWhiteSpace = WHITE_SPACE.test(char.textChar)
-    if (i > 0 && totalWidth + char.metrix.width > maxWidth && !isWhiteSpace) {
+    if (i > 0 && totalWidth + char.width > maxWidth && !isWhiteSpace) {
       splitAt = i
       break
     }
-    totalWidth += char.metrix.width
+    totalWidth += char.width
   }
 
   if (splitAt === 0) {
@@ -98,7 +98,7 @@ export const lineBreakWithCharMetrixes = (text: string, charMetrixes: CharMetrix
 
   const lines: LineMetrix[] = []
   const newLine = () => {
-    const l = { at: index, width: 0, lineAscent: 0, lineDescent: 0, lineMargin: 0 }
+    const l = { at: index, width: 0, lineAscent: 0, lineDescent: 0, lineMargin: 0, words: [] }
     lines.push(l)
     return l
   }
@@ -113,6 +113,7 @@ export const lineBreakWithCharMetrixes = (text: string, charMetrixes: CharMetrix
     line.width += word.width
     line.lineAscent = Math.max(line.lineAscent, ...word.chars.map(c => c.metrix.fontBoundingBoxAscent))
     line.lineDescent = Math.max(line.lineDescent, ...word.chars.map(c => c.metrix.fontBoundingBoxDescent))
+    line.words.push(word)
     index += word.length;
   }
 

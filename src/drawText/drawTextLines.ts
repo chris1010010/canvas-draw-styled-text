@@ -42,7 +42,7 @@ const mesureTextCharWidth = <M extends ExtensionsMap>(text: StyledText<M>): Char
     const isBr = char === '\n'
     const zeroWidthSpace = '\u200b'
     const metrix = ctx.measureText(isBr ? zeroWidthSpace : char)
-    charWidths.push({ metrix, textChar: char })
+    charWidths.push({ metrix, width: metrix.width, textChar: char })
   }
   return charWidths
 }
@@ -164,7 +164,7 @@ const drawTextLinesWithWidthAndBreaks = <M extends ExtensionsMap>(
           }
           segChars.push(cs.char)
         }
-        const segWidth = segChars.reduce((sum, c) => sum + c.metrix.width, 0)
+        const segCharsWidth = segChars.reduce((sum, c) => sum + c.width, 0)
         const segText = segChars.map((c) => c.textChar).join('')
 
         // call extension if exists
@@ -186,11 +186,11 @@ const drawTextLinesWithWidthAndBreaks = <M extends ExtensionsMap>(
           let cx = pos.x
           segChars.forEach((c) => {
             drawMetrixBox(ctx, cx, pos.y, line.lineMetrix.lineAscent, c.metrix)
-            cx += c.metrix.width
+            cx += c.width
           })
         }
         // update pos
-        pos.x += segWidth
+        pos.x += segCharsWidth
       }
     }
 
@@ -264,9 +264,18 @@ const drawTextLinesWithWidthAndBreaksRTL = <M extends ExtensionsMap>(
           segChars.push(cs.char)
           //console.log("'"+cs.char.textChar+"'")
         }
-        const segWidth = segChars.reduce((sum, c) => sum + c.metrix.width, 0)
+        const segCharsWidth = segChars.reduce((sum, c) => sum + c.metrix.width, 0)
         const segText = segChars.map((c) => c.textChar).join('')
         //console.log(segText)
+
+        //Accommodate for width differences when rendering characters individually vs. whole words
+        const segWidthMeasured = ctx.measureText(segText).width
+        if (segWidthMeasured < segCharsWidth) {
+          const diff = segCharsWidth - segWidthMeasured;
+          const multiplier = segWidthMeasured / segCharsWidth;
+          line.lineMetrix.width -= diff;
+          segChars.forEach(c => c.width *= multiplier)
+        }
 
         // call extension if exists
         for (let name in style) {
@@ -291,7 +300,7 @@ const drawTextLinesWithWidthAndBreaksRTL = <M extends ExtensionsMap>(
           })
         }*/
         // update pos
-        pos.x -= segWidth
+        pos.x -= segWidthMeasured
       }
     }
 
@@ -309,7 +318,24 @@ const getOuterBoxForLines = (
   setting: BaseOptions
 ): { x: number; y: number; width: number; height: number } => {
   // outer box size
-  const boxWidth = Math.max(...lineBreaks.map((l) => l.width))
+  //let longestLine: LineMetrix = { at: 0, width: 0, lineAscent: 0, lineDescent: 0, words: [] };
+  let max : number = 0;
+  lineBreaks.forEach(l => {
+    if (l.width > max) {
+      //longestLine = l;
+      max = l.width;
+    }
+  })
+
+  /*let lineText = ""
+  longestLine.words.forEach(word => {
+    if (lineText)
+      lineText += " "
+    lineText += word
+  })*/
+
+  const boxWidth = max; //Math.max(...lineBreaks.map((l) => l.width))
+
   const boxHeight = lineBreaks.reduce(
     (acc, cur) => acc + (cur.lineAscent + cur.lineDescent) * (setting.lineHeight ?? 1),
     0
@@ -370,15 +396,6 @@ export const drawStyledText = <E extends ExtensionsMap = any>(
       : lineBreakWithCharMetrixes(text.text, charWidths, maxWidth, text.setting.overflowWrap === 'break-word')
   const lines = computeLineText(text, charWidths, lineBreaks)
 
-  const box = getOuterBoxForLines(lineBreaks, maxWidth, text.setting)
-  const outerBox = {
-    x: x + box.x,
-    y: y + box.y,
-    width: box.width,
-    height: box.height,
-  }
-  DEBUG && drawOuterBox(ctx, outerBox.x, outerBox.width, outerBox.height)
-
   ctx.save()
   ctx.textBaseline = isVertical ? 'middle' : 'alphabetic'
   if ((ctx as any).textRendering) {
@@ -401,6 +418,15 @@ export const drawStyledText = <E extends ExtensionsMap = any>(
     drawTextLinesWithWidthAndBreaks(ctx, lines, text, maxWidth)
   ctx.canvas.style.fontKerning = savedKerning
   ctx.restore()
+
+  const box = getOuterBoxForLines(lineBreaks, maxWidth, text.setting)
+  const outerBox = {
+    x: x + box.x,
+    y: y + box.y,
+    width: box.width,
+    height: box.height,
+  }
+  DEBUG && drawOuterBox(ctx, outerBox.x, outerBox.width, outerBox.height)
 
   return {
     charWidths,

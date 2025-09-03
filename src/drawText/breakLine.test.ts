@@ -42,6 +42,7 @@ describe('lineBreakWithCharMetrixes', () => {
     const metrics = charMetrics[char] || ctx.measureText(char)
     return {
       metrix: metrics,
+      width: metrics.width,
       textChar: char,
     }
   }
