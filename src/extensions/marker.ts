@@ -32,8 +32,14 @@ export const markerExtension: Extension<MarkerOption> = {
     ctx.lineCap = 'round'
     ctx.strokeStyle = opt.color
     ctx.lineWidth = w
-    ctx.moveTo(segment.pos.x + w / 2, y)
-    ctx.lineTo(segment.pos.x - w / 2 + segment.text.reduce((sum, c) => sum + c.metrix.width, 0), y)
+    if (ctx.textAlign === "right") {
+      ctx.moveTo(segment.pos.x - w / 2, y)
+      ctx.lineTo(segment.pos.x + w / 2 - segment.width, y)
+    }
+    else {
+      ctx.moveTo(segment.pos.x + w / 2, y)
+      ctx.lineTo(segment.pos.x - w / 2 + segment.width, y)
+    }
     ctx.stroke()
     ctx.restore()
   },

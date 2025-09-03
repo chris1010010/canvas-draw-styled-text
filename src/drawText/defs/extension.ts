@@ -9,6 +9,8 @@ export type DrawingSegment = {
   text: CharMetrix[]
   /** position of start this segment */
   pos: { x: number; y: number }
+  /** width of this segment */
+  width:  number
   /** style for this segment */
   style: Style
 }

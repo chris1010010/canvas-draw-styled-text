@@ -31,9 +31,9 @@ export const underLineExtension: Extension<UnderLineOption> = {
     ctx.lineWidth = opt.width
     ctx.moveTo(segment.pos.x, y)
     if (ctx.textAlign === "right")
-      ctx.lineTo(segment.pos.x - segment.text.reduce((sum, c) => sum + c.metrix.width, 0), y)
+      ctx.lineTo(segment.pos.x - segment.width, y)
     else
-      ctx.lineTo(segment.pos.x + segment.text.reduce((sum, c) => sum + c.metrix.width, 0), y)
+      ctx.lineTo(segment.pos.x + segment.width, y)
     ctx.stroke()
     ctx.restore()
   },

@@ -173,7 +173,7 @@ const drawTextLinesWithWidthAndBreaks = <M extends ExtensionsMap>(
           const option = style[name]
           const currentStyle = { ...style } as Style
           if (extension && option)
-            extension.beforeSegment(ctx, { line, text: segChars, pos, style: currentStyle }, option)
+            extension.beforeSegment(ctx, { line, text: segChars, pos, width:segCharsWidth, style: currentStyle }, option)
         }
 
         // get drawing offset for safari bug
@@ -283,7 +283,7 @@ const drawTextLinesWithWidthAndBreaksRTL = <M extends ExtensionsMap>(
           const option = style[name]
           const currentStyle = { ...style } as Style
           if (extension && option)
-            extension.beforeSegment(ctx, { line, text: segChars, pos, style: currentStyle }, option)
+            extension.beforeSegment(ctx, { line, text: segChars, pos, style: currentStyle, width: segWidthMeasured }, option)
         }
 
         // get drawing offset for safari bug
